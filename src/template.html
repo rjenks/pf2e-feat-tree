@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PF2e Feat Prerequisite Diagrams</title>
+<style>
+@font-face{font-family:PF2Actions;src:url(data:font/woff2;base64,__FONT__) format('woff2')}
+.ag{font-family:PF2Actions;font-weight:normal;font-size:1.15em;line-height:1}
+:root{--bg:#fbfaf7;--fg:#222;--mut:#6b6b6b;--line:#cfc9bc;--card:#fff;--acc:#7a1f1f}
+@media(prefers-color-scheme:dark){:root{--bg:#17161a;--fg:#e8e6e1;--mut:#9a978f;--line:#3b3a40;--card:#201f24;--acc:#e08a7a}}
+*{box-sizing:border-box}html,body{height:100%}body{margin:0;display:flex;flex-direction:column;overflow:hidden;background:var(--bg);color:var(--fg);font:15px/1.4 system-ui,sans-serif}
+header{flex:none;border-bottom:1px solid var(--line);padding:10px 16px}
+h1{font-size:18px;margin:0 0 8px}
+.bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+button,input,select{font:inherit;color:inherit;background:var(--card);border:1px solid var(--line);border-radius:6px;padding:5px 10px}
+button.on{background:var(--acc);color:#fff;border-color:var(--acc)}
+input[type=search]{flex:1;min-width:160px;max-width:280px}
+select{min-width:220px;max-width:100%}
+#info{color:var(--mut);font-size:13px;padding:8px 16px;flex:none}
+#wrap{overflow:auto;padding:8px 16px 24px;flex:1;min-height:0}
+#out svg{max-width:none}
+.legend{display:inline-flex;gap:10px;font-size:12px;color:var(--mut);margin-left:auto;flex-wrap:wrap}
+.legend i{display:inline-block;width:11px;height:11px;border-radius:3px;margin-right:4px;vertical-align:-1px;border:1px solid var(--line)}
+#tip{position:fixed;z-index:50;max-width:420px;max-height:70vh;overflow:auto;background:var(--card);color:var(--fg);border:1px solid var(--line);border-radius:8px;box-shadow:0 6px 24px rgba(0,0,0,.28);padding:10px 12px;font-size:13px;line-height:1.4;pointer-events:none;display:none}
+#tip h3{margin:0 0 2px;font-size:15px;display:flex;justify-content:space-between;gap:12px}#tip h3 span{color:var(--mut);font-weight:400;white-space:nowrap}
+#tip .tr{display:flex;flex-wrap:wrap;gap:3px;margin:4px 0}#tip .tr b{font-weight:600;font-size:11px;text-transform:uppercase;padding:1px 6px;border-radius:3px;background:var(--acc);color:#fff}
+#tip .tr b.rar{background:#b35c00}#tip p{margin:5px 0;white-space:pre-line}#tip .m{color:var(--mut);font-size:12px}#tip .m b{color:var(--fg)}
+.node{cursor:help}
+#solo{padding:14px 16px 24px;border-top:2px solid var(--line);margin-top:18px}#solo h2{font-size:14px;margin:0 0 8px;color:var(--mut);font-weight:600}
+#solo .chips{display:flex;flex-wrap:wrap;gap:8px}.chip{cursor:help;border:1px solid #9370db;background:#ececff;color:#222;border-radius:3px;padding:5px 10px;font-size:13px;text-align:center;line-height:1.3}
+.chip.unc{background:#ffd9a0;border-color:#b35c00}.chip.rare{background:#b9dcff;border-color:#0b5ea8}.chip.hit{outline:3px solid #d00}.chip small{display:block;color:#555}
+footer{color:var(--mut);font-size:12px;padding:6px 16px;border-top:1px solid var(--line);flex:none}
+</style></head><body>
+<header><h1>PF2e Feat Prerequisite Diagrams</h1>
+<div class="bar"><span id="tabs"></span><select id="grp"></select><input id="q" type="search" placeholder="Find a feat…">
+<button id="zo" title="Zoom out">−</button><button id="zi" title="Zoom in">+</button>
+<span class="legend"><span><i style="background:#fff"></i>common</span><span><i style="background:#ffd9a0"></i>uncommon</span><span><i style="background:#b9dcff"></i>rare</span><span><i style="background:#e6e6e6;border-style:dashed"></i>from another group</span><span><i style="background:#d6f0e0"></i>skill / attribute requirement</span><span>arrow = “requires”; dashed = one of several alternatives</span></span></div></header>
+<div id="tip"></div><div id="info"></div><div id="wrap"><div id="out"></div><div id="solo"></div></div>
+<footer>Read right to left: each feat points to the feats it requires, so the starting feats are on the left and the highest-level feats on the right. Each feat appears once per diagram. Feats that have prerequisite feats (and the feats they build on) are drawn in the diagram; all remaining feats are listed below it, by level. Data: foundryvtt/pf2e __VERSION__. Pathfinder is a trademark of Paizo Inc.; this is unofficial fan material. Diagrams are drawn by Mermaid (with the ELK layout engine), loaded from a CDN, so this page needs a network connection.</footer>
+<script type="module">
+import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11.4.1/dist/mermaid.esm.min.mjs';
+const D=__DATA__,G=D.groups,N=D.nodes;
+const dark=matchMedia('(prefers-color-scheme: dark)').matches;
+let elk=false;
+try{const m=await import('https://cdn.jsdelivr.net/npm/@mermaid-js/layout-elk@0.1.7/dist/mermaid-layout-elk.esm.min.mjs');mermaid.registerLayoutLoaders(m.default);elk=true}catch(e){console.warn('ELK layout unavailable, using dagre',e)}
+mermaid.initialize({layout:elk?'elk':'dagre',elk:{nodePlacementStrategy:'NETWORK_SIMPLEX',mergeEdges:false,cycleBreakingStrategy:'GREEDY'},startOnLoad:false,theme:dark?'dark':'default',maxTextSize:900000,maxEdges:5000,securityLevel:'strict',flowchart:{useMaxWidth:false,htmlLabels:false,nodeSpacing:18,rankSpacing:50}});
+let tab='Class',grp=null,zoom=1,q='';
+const $=id=>document.getElementById(id);
+const hasQ=ids=>!q||ids.some(i=>N[i].n.toLowerCase().includes(q));
+function qRaw(g,id){const x=(G[tab][g].x||{})[id];return x?N[id].q.concat(x):N[id].q}
+// In an archetype diagram, drop rival archetypes' Dedications from "A or B Dedication" alternatives;
+// the dropped names are returned so the feat can note them.
+const isRival=(g,a)=>tab==='Archetype'&&N[a].n.endsWith(' Dedication')&&N[a].g[0]!=='Archetype: '+g;
+function qOf(g,id){return qRaw(g,id).map(al=>{const k=al.filter(a=>!isRival(g,a));return k.length?k:al})}
+function rivals(g,id){const o=[];for(const al of qRaw(g,id)){const k=al.filter(a=>!isRival(g,a));if(k.length&&k.length<al.length)al.filter(a=>isRival(g,a)).forEach(a=>o.push(N[a].n.replace(/ Dedication$/,'')))}return o}
+function closure(g){const own=new Set(),all=new Set(),st=[...G[tab][g].tops];
+ const memberAll=Object.keys(N);// members = those listed via tops + required chain
+ while(st.length){const i=st.pop();if(all.has(i))continue;all.add(i);qOf(g,i).forEach(a=>a.forEach(c=>st.push(c)))}
+ return all}
+function groupMembers(g){return closure(g)}
+function opts(){const s=$('grp');const names=Object.keys(G[tab]).filter(g=>hasQ([...closure(g),...G[tab][g].solo]));
+ s.innerHTML=names.map(g=>`<option value="${g.replace(/"/g,'&quot;')}">${g} (${G[tab][g].n})</option>`).join('');
+ if(!names.includes(grp))grp=names[0]||null;if(grp)s.value=grp;return names}
+let seq=0;
+const tip=$('tip');
+function showTip(fid,ev){const n=N[fid];if(!n)return;const c=n.c;tip.textContent='';
+ const mk=(tag,txt,cls)=>{const e=document.createElement(tag);if(txt!=null)e.textContent=txt;if(cls)e.className=cls;return e};
+ const h=mk('h3');const nm=mk('div',n.n);if(c.ag){nm.append(' ');nm.append(mk('span',c.ag,'ag'))}h.append(nm,mk('span',n.s?(/ \+\d$/.test(n.n)?'Attribute modifier':'Skill proficiency'):'Feat '+n.l));tip.append(h);
+ const tr=mk('div',null,'tr');if(n.r&&n.r!=='common'){tr.append(mk('b',n.r,'rar'))}
+ c.t.forEach(x=>tr.append(mk('b',x)));tip.append(tr);
+ if(c.p){const p=mk('div',null,'m');p.append(mk('b','Prerequisites '),document.createTextNode(c.p));tip.append(p)}
+ const dp=mk('p');(c.d||'(no description)').split(/\ue000([^\ue001]*)\ue001/).forEach((s,i)=>dp.append(i%2?mk('span',s,'ag'):document.createTextNode(s)));tip.append(dp);if(c.s)tip.append(mk('div',c.s,'m'));
+ tip.style.display='block';moveTip(ev)}
+function moveTip(ev){const w=tip.offsetWidth,h=tip.offsetHeight;let x=ev.clientX+16,y=ev.clientY+16;
+ if(x+w>innerWidth-8)x=ev.clientX-w-16;if(x<8)x=8;if(y+h>innerHeight-8)y=Math.max(8,innerHeight-h-8);tip.style.left=x+'px';tip.style.top=y+'px'}
+function wireTips(){let cur=null;const svg=$('out').querySelector('svg');if(!svg)return;
+ svg.addEventListener('mousemove',e=>{const g=e.target.closest&&e.target.closest('g.node');
+  const m=g&&/flowchart-(f\d+)-/.exec(g.id);const fid=m&&ids2[m[1]];
+  if(!fid){cur=null;tip.style.display='none';hl(null);return}
+  if(cur!==fid){cur=fid;showTip(fid,e);hl(m[1])}else moveTip(e)});
+ svg.addEventListener('mouseleave',()=>{cur=null;tip.style.display='none';hl(null)});
+ const edges=[...svg.querySelectorAll('path.flowchart-link')].map(p=>{const k=/(f\d+)[_-](f\d+)/.exec(p.id||'');return k&&{p,from:k[1],to:k[2],mk:p.getAttribute('marker-end')||p.style.markerEnd}}).filter(Boolean);
+ const mkr=svg.querySelector('marker[id$="pointEnd"]');let hlUrl=null;
+ if(mkr){const c=mkr.cloneNode(true);c.id=mkr.id+'-hl';c.querySelectorAll('*').forEach(x=>{x.style.fill='#d00';x.style.stroke='#d00'});mkr.parentNode.append(c);hlUrl='url(#'+c.id+')'}
+ function hl(src){const reach=new Set(src?[src]:[]);for(let ch=true;ch;){ch=false;edges.forEach(o=>{if(reach.has(o.from)&&!reach.has(o.to)){reach.add(o.to);ch=true}})}
+  edges.forEach(o=>{const on=src&&reach.has(o.from);
+   o.p.style.stroke=on?'#d00':'';o.p.style.strokeWidth=on?'3px':'';o.p.style.opacity=src&&!on?'.12':'';
+   if(hlUrl){if(on)o.p.style.markerEnd=hlUrl;else o.p.style.markerEnd=''}});
+  svg.querySelectorAll('g.node').forEach(g=>{const m2=/flowchart-(f\d+)-/.exec(g.id);const t=src&&m2&&reach.has(m2[1]);g.style.opacity=src&&!t?'.35':''})}}
+let ids2={};
+
+function writeHash(){const h='#'+[tab,grp||'',q].map(encodeURIComponent).join('/').replace(/\/+$/,'');
+ if(h!==location.hash)history[prevKey===null||prevKey===tab+'\u0001'+grp?'replaceState':'pushState'](null,'',h);prevKey=tab+'\u0001'+grp}
+let prevKey=null;
+function readHash(){const p=location.hash.slice(1).split('/').map(x=>{try{return decodeURIComponent(x)}catch(e){return x}});
+ if(!G[p[0]])return false;tab=p[0];grp=p[1]&&G[tab][p[1]]?p[1]:null;q=(p[2]||'').trim().toLowerCase();$('q').value=q;return true}
+async function draw(){const names=opts();writeHash();const out=$('out');
+ if(!grp){out.innerHTML='';$('solo').innerHTML='';$('info').textContent='No matching groups.';return}
+ const solo=G[tab][grp].solo;renderSolo(solo);
+ const ids=[...closure(grp)];
+ if(!ids.length){out.innerHTML='';$('info').textContent=`${grp}: ${solo.length} feats, none with prerequisites`;return}const idx=new Map(ids.map((id,i)=>[id,'f'+i]));ids2={};ids.forEach((id,i)=>ids2['f'+i]=id);
+ const ownTops=new Set(G[tab][grp].tops);
+ // which nodes belong to this group: reachable set minus nodes reachable only via other groups is unknowable; mark by group membership list
+ const mem=G[tab][grp].mem?new Set(G[tab][grp].mem):null;
+ const lines=['flowchart RL'];
+ const esc=s=>s.replace(/"/g,'#quot;');
+ for(const id of ids){const n=N[id];const ext=mem&&!mem.has(id)&&!n.s,rv=rivals(grp,id);lines.push(`${idx.get(id)}["${esc(n.n)}${n.s?'':'<br/>L'+n.l}${ext?'<br/>'+esc('from '+n.g.slice(0,2).join(' / ')):''}${rv.length?'<br/>'+esc('or '+rv.join(', ')+' Dedication'):''}"]`);}
+ let edges=0;
+ for(const id of ids){for(const alts of qOf(grp,id)){for(const a of alts){lines.push(`${idx.get(id)} ${alts.length>1?'-.->':'-->'} ${idx.get(a)}`);edges++}}}
+ lines.push('classDef unc fill:#ffd9a0,stroke:#b35c00,color:#222','classDef rare fill:#b9dcff,stroke:#0b5ea8,color:#222','classDef ext fill:#e6e6e6,stroke:#888,stroke-dasharray:4 3,color:#222','classDef hit stroke:#d00,stroke-width:4px','classDef sk fill:#d6f0e0,stroke:#2b8a57,color:#222');
+ const by=(f)=>ids.filter(f).map(i=>idx.get(i)).join(',');
+ const u=by(i=>!N[i].s&&N[i].r=='uncommon'),r=by(i=>N[i].r=='rare'||N[i].r=='unique'),e=by(i=>mem&&!mem.has(i)),h=q?by(i=>N[i].n.toLowerCase().includes(q)):'';
+ if(u)lines.push(`class ${u} unc`);if(r)lines.push(`class ${r} rare`);if(e)lines.push(`class ${e} ext`);if(h)lines.push(`class ${h} hit`);const sk=by(i=>N[i].s);if(sk)lines.push(`class ${sk} sk`);
+ $('info').textContent=`${grp}: ${ids.length} feats in the diagram (${edges} prerequisite links), ${solo.length} without prerequisites below`;
+ try{const {svg}=await mermaid.render('m'+(++seq),lines.join('\n'));out.innerHTML=svg;applyZoom();wireTips()}
+ catch(err){out.textContent='Diagram failed to render: '+err.message}}
+function renderSolo(solo){const el=$('solo');el.textContent='';if(!solo.length)return;
+ const h=document.createElement('h2');h.textContent=`Feats without prerequisites (${solo.length})`;el.append(h);
+ const box=document.createElement('div');box.className='chips';
+ for(const id of solo){const n=N[id],c=document.createElement('div');c.className='chip'+(n.r=='uncommon'?' unc':n.r=='rare'||n.r=='unique'?' rare':'')+(q&&n.n.toLowerCase().includes(q)?' hit':'');
+  c.textContent=n.n;const s=document.createElement('small');s.textContent='L'+n.l;c.append(s);c.dataset.id=id;box.append(c)}
+ el.append(box);
+ el.onmousemove=e=>{const c=e.target.closest('.chip');if(!c){tip.style.display='none';return}if(c.dataset.id!==soloCur){soloCur=c.dataset.id;showTip(soloCur,e)}else moveTip(e)};
+ el.onmouseleave=()=>{soloCur=null;tip.style.display='none'}}
+let soloCur=null;
+function applyZoom(){const s=$('out').querySelector('svg');if(s)s.style.zoom=zoom}
+function tabs(){$('tabs').innerHTML=Object.keys(G).map(k=>`<button class="${k==tab?'on':''}" data-t="${k}">${k}</button>`).join(' ')}
+$('tabs').onclick=e=>{if(e.target.dataset.t){tab=e.target.dataset.t;grp=null;tabs();draw()}};
+$('grp').onchange=e=>{grp=e.target.value;draw()};
+$('q').oninput=e=>{q=e.target.value.trim().toLowerCase();draw()};
+$('zi').onclick=()=>{zoom=Math.min(3,zoom*1.25);applyZoom()};$('zo').onclick=()=>{zoom=Math.max(.2,zoom/1.25);applyZoom()};
+addEventListener('hashchange',()=>{if(readHash()){tabs();draw()}});
+addEventListener('popstate',()=>{if(readHash()){tabs();draw()}});
+readHash();tabs();draw();
+</script></body></html>
