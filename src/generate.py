@@ -60,7 +60,7 @@ def owner(f, seen=()):
 parents_done = False
 
 import html as _html
-ex = {r['id']: r for r in rules_sql("select id, json_extract(raw_json,'$.system.actionType.value') at, json_extract(raw_json,'$.system.actions.value') ac, json_extract(raw_json,'$.system.prerequisites.value') pr, source_book from entries where pack='feats'", limit=100000, max_cell=20000)['rows']}
+ex = {r['id']: r for r in rules_sql("select id, json_extract(raw_json,'$.system.actionType.value') at, json_extract(raw_json,'$.system.actions.value') ac, json_extract(raw_json,'$.system.prerequisites.value') pr, source_book, is_remaster from entries where pack='feats'", limit=100000, max_cell=20000)['rows']}
 def clean(h):
     h = h or ''
     h = re.sub(r'@UUID\[[^\]]*\]\{([^}]*)\}', r'\1', h)
@@ -231,6 +231,7 @@ def need(i):
     nodes[i] = {'n': f['name'], 'l': f['level'], 'r': f['rarity'], 'q': [], 'c': card(f),
                 'g': [f'{k}: {n}' for k, n in groups_of(f)]}
     if f.get('synthetic'): nodes[i]['s'] = 1
+    elif ex.get(i, {}).get('is_remaster') == 0: nodes[i]['lg'] = 1  # pre-Remaster (legacy) content
     for alts in reqs.get(i, []) + skreqs.get(i, []):
         for a in alts: need(a)
     nodes[i]['q'] = reqs.get(i, []) + skreqs.get(i, [])

@@ -22,11 +22,11 @@ select{min-width:220px;max-width:100%}
 #tip{position:fixed;z-index:50;max-width:420px;max-height:70vh;overflow:auto;background:var(--card);color:var(--fg);border:1px solid var(--line);border-radius:8px;box-shadow:0 6px 24px rgba(0,0,0,.28);padding:10px 12px;font-size:13px;line-height:1.4;pointer-events:none;display:none}
 #tip h3{margin:0 0 2px;font-size:15px;display:flex;justify-content:space-between;gap:12px}#tip h3 span{color:var(--mut);font-weight:400;white-space:nowrap}
 #tip .tr{display:flex;flex-wrap:wrap;gap:3px;margin:4px 0}#tip .tr b{font-weight:600;font-size:11px;text-transform:uppercase;padding:1px 6px;border-radius:3px;background:var(--acc);color:#fff}
-#tip .tr b.rar{background:#b35c00}#tip p{margin:5px 0;white-space:pre-line}#tip .m{color:var(--mut);font-size:12px}#tip .m b{color:var(--fg)}
+#tip .tr b.rar{background:#b35c00}#tip .tr b.leg{background:#8a5a2b}#tip .lgn{margin:4px 0;padding:3px 8px;border-left:3px solid #8a5a2b;background:rgba(138,90,43,.14);font-size:12px}#tip p{margin:5px 0;white-space:pre-line}#tip .m{color:var(--mut);font-size:12px}#tip .m b{color:var(--fg)}
 .node{cursor:help}
 #solo{padding:14px 16px 24px;border-top:2px solid var(--line);margin-top:18px}#solo h2{font-size:14px;margin:0 0 8px;color:var(--mut);font-weight:600}
 #solo .chips{display:flex;flex-wrap:wrap;gap:8px}.chip{cursor:help;border:1px solid #9370db;background:#ececff;color:#222;border-radius:3px;padding:5px 10px;font-size:13px;text-align:center;line-height:1.3}
-.chip.unc{background:#ffd9a0;border-color:#b35c00}.chip.rare{background:#b9dcff;border-color:#0b5ea8}.chip.hit{outline:3px solid #d00}.chip small{display:block;color:#555}
+.chip.unc{background:#ffd9a0;border-color:#b35c00}.chip.rare{background:#b9dcff;border-color:#0b5ea8}.chip.leg{font-style:italic}.chip.hit{outline:3px solid #d00}.chip small{display:block;color:#555}
 footer{color:var(--mut);font-size:12px;padding:6px 16px;border-top:1px solid var(--line);flex:none}
 #lic{width:min(760px,94vw);max-height:86vh;overflow:hidden;background:var(--card);color:var(--fg);border:1px solid var(--line);border-radius:8px;padding:0}
 #lic::backdrop{background:rgba(0,0,0,.45)}#lic .in{padding:12px 20px 18px;overflow:auto;max-height:86vh;font-size:13px;line-height:1.45}
@@ -36,7 +36,7 @@ footer button{padding:1px 8px;font-size:12px;margin-left:6px}
 <header><h1>PF2e Feat Prerequisite Diagrams</h1>
 <div class="bar"><span id="tabs"></span><select id="grp"></select><input id="q" type="search" placeholder="Find a feat…">
 <button id="zo" title="Zoom out">−</button><button id="zi" title="Zoom in">+</button>
-<span class="legend"><span><i style="background:#fff"></i>common</span><span><i style="background:#ffd9a0"></i>uncommon</span><span><i style="background:#b9dcff"></i>rare</span><span><i style="background:#e6e6e6;border-style:dashed"></i>from another group</span><span><i style="background:#d6f0e0"></i>skill / attribute requirement</span><span>arrow = “requires”; dashed = one of several alternatives</span></span></div></header>
+<span class="legend"><span><i style="background:#fff"></i>common</span><span><i style="background:#ffd9a0"></i>uncommon</span><span><i style="background:#b9dcff"></i>rare</span><span><i style="background:#e6e6e6;border-style:dashed"></i>from another group</span><span><i style="background:#d6f0e0"></i>skill / attribute requirement</span><span><em>italic · legacy</em> = pre-Remaster</span><span>arrow = “requires”; dashed = one of several alternatives</span></span></div></header>
 <div id="tip"></div><div id="info"></div><div id="wrap"><div id="out"></div><div id="solo"></div></div>
 <footer>Read right to left: each feat points to the feats it requires. Feats with no feat or skill prerequisites are listed below the diagram. <button id="licb">Licenses &amp; attribution</button></footer>
 <dialog id="lic"><div class="in"><h2>Licenses &amp; attribution <button id="licx">Close</button></h2>__LICENSES__</div></dialog>
@@ -70,9 +70,9 @@ const tip=$('tip');
 function showTip(fid,ev){const n=N[fid];if(!n)return;const c=n.c;tip.textContent='';
  const mk=(tag,txt,cls)=>{const e=document.createElement(tag);if(txt!=null)e.textContent=txt;if(cls)e.className=cls;return e};
  const h=mk('h3');const nm=mk('div',n.n);if(c.ag){nm.append(' ');nm.append(mk('span',c.ag,'ag'))}h.append(nm,mk('span',n.s?(/ \+\d$/.test(n.n)?'Attribute modifier':'Skill proficiency'):'Feat '+n.l));tip.append(h);
- const tr=mk('div',null,'tr');if(n.r&&n.r!=='common'){tr.append(mk('b',n.r,'rar'))}
+ const tr=mk('div',null,'tr');if(n.lg)tr.append(mk('b','Legacy','leg'));if(n.r&&n.r!=='common'){tr.append(mk('b',n.r,'rar'))}
  c.t.forEach(x=>tr.append(mk('b',x)));tip.append(tr);
- if(c.p){const p=mk('div',null,'m');p.append(mk('b','Prerequisites '),document.createTextNode(c.p));tip.append(p)}
+ if(n.lg)tip.append(mk('div','Legacy content: from a pre-Remaster book, so it may be outdated or replaced in the Remaster rules.','lgn'));if(c.p){const p=mk('div',null,'m');p.append(mk('b','Prerequisites '),document.createTextNode(c.p));tip.append(p)}
  const dp=mk('p');(c.d||'(no description)').split(/\ue000([^\ue001]*)\ue001/).forEach((s,i)=>dp.append(i%2?mk('span',s,'ag'):document.createTextNode(s)));tip.append(dp);if(c.s)tip.append(mk('div',c.s,'m'));
  tip.style.display='block';moveTip(ev)}
 function moveTip(ev){const w=tip.offsetWidth,h=tip.offsetHeight;let x=ev.clientX+16,y=ev.clientY+16;
@@ -108,21 +108,21 @@ async function draw(){const names=opts();writeHash();const out=$('out');
  const mem=G[tab][grp].mem?new Set(G[tab][grp].mem):null;
  const lines=['flowchart RL'];
  const esc=s=>s.replace(/"/g,'#quot;');
- for(const id of ids){const n=N[id];const ext=mem&&!mem.has(id)&&!n.s,rv=rivals(grp,id);lines.push(`${idx.get(id)}["${esc(n.n)}${n.s?'':'<br/>L'+n.l}${ext?'<br/>'+esc('from '+n.g.slice(0,2).join(' / ')):''}${rv.length?'<br/>'+esc('or '+rv.join(', ')+' Dedication'):''}"]`);}
+ for(const id of ids){const n=N[id];const ext=mem&&!mem.has(id)&&!n.s,rv=rivals(grp,id);lines.push(`${idx.get(id)}["${esc(n.n)}${n.s?'':'<br/>L'+n.l+(n.lg?' · legacy':'')}${ext?'<br/>'+esc('from '+n.g.slice(0,2).join(' / ')):''}${rv.length?'<br/>'+esc('or '+rv.join(', ')+' Dedication'):''}"]`);}
  let edges=0;
  for(const id of ids){for(const alts of qOf(grp,id)){for(const a of alts){lines.push(`${idx.get(id)} ${alts.length>1?'-.->':'-->'} ${idx.get(a)}`);edges++}}}
- lines.push('classDef unc fill:#ffd9a0,stroke:#b35c00,color:#222','classDef rare fill:#b9dcff,stroke:#0b5ea8,color:#222','classDef ext fill:#e6e6e6,stroke:#888,stroke-dasharray:4 3,color:#222','classDef hit stroke:#d00,stroke-width:4px','classDef sk fill:#d6f0e0,stroke:#2b8a57,color:#222');
+ lines.push('classDef unc fill:#ffd9a0,stroke:#b35c00,color:#222','classDef rare fill:#b9dcff,stroke:#0b5ea8,color:#222','classDef ext fill:#e6e6e6,stroke:#888,stroke-dasharray:4 3,color:#222','classDef leg font-style:italic','classDef hit stroke:#d00,stroke-width:4px','classDef sk fill:#d6f0e0,stroke:#2b8a57,color:#222');
  const by=(f)=>ids.filter(f).map(i=>idx.get(i)).join(',');
  const u=by(i=>!N[i].s&&N[i].r=='uncommon'),r=by(i=>N[i].r=='rare'||N[i].r=='unique'),e=by(i=>mem&&!mem.has(i)),h=q?by(i=>N[i].n.toLowerCase().includes(q)):'';
- if(u)lines.push(`class ${u} unc`);if(r)lines.push(`class ${r} rare`);if(e)lines.push(`class ${e} ext`);if(h)lines.push(`class ${h} hit`);const sk=by(i=>N[i].s);if(sk)lines.push(`class ${sk} sk`);
+ if(u)lines.push(`class ${u} unc`);if(r)lines.push(`class ${r} rare`);if(e)lines.push(`class ${e} ext`);const lg=by(i=>N[i].lg);if(lg)lines.push(`class ${lg} leg`);if(h)lines.push(`class ${h} hit`);const sk=by(i=>N[i].s);if(sk)lines.push(`class ${sk} sk`);
  $('info').textContent=`${grp}: ${ids.length} feats in the diagram (${edges} prerequisite links), ${solo.length} with no feat or skill prerequisites below`;
  try{const {svg}=await mermaid.render('m'+(++seq),lines.join('\n'));out.innerHTML=svg;applyZoom();wireTips()}
  catch(err){out.textContent='Diagram failed to render: '+err.message}}
 function renderSolo(solo){const el=$('solo');el.textContent='';if(!solo.length)return;
  const h=document.createElement('h2');h.textContent=`Feats with no feat or skill prerequisites (${solo.length})`;el.append(h);
  const box=document.createElement('div');box.className='chips';
- for(const id of solo){const n=N[id],c=document.createElement('div');c.className='chip'+(n.r=='uncommon'?' unc':n.r=='rare'||n.r=='unique'?' rare':'')+(q&&n.n.toLowerCase().includes(q)?' hit':'');
-  c.textContent=n.n;const s=document.createElement('small');s.textContent='L'+n.l;c.append(s);c.dataset.id=id;box.append(c)}
+ for(const id of solo){const n=N[id],c=document.createElement('div');c.className='chip'+(n.r=='uncommon'?' unc':n.r=='rare'||n.r=='unique'?' rare':'')+(n.lg?' leg':'')+(q&&n.n.toLowerCase().includes(q)?' hit':'');
+  c.textContent=n.n;const s=document.createElement('small');s.textContent='L'+n.l+(n.lg?' · legacy':'');c.append(s);c.dataset.id=id;box.append(c)}
  el.append(box);
  el.onmousemove=e=>{const c=e.target.closest('.chip');if(!c){tip.style.display='none';return}if(c.dataset.id!==soloCur){soloCur=c.dataset.id;showTip(soloCur,e)}else moveTip(e)};
  el.onmouseleave=()=>{soloCur=null;tip.style.display='none'}}
