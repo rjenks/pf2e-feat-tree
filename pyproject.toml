@@ -3,7 +3,9 @@ name = "pf2e-feat-tree"
 version = "0.1.0"
 description = "Standalone HTML feat prerequisite diagrams generated from the pf2e-mcp rules data"
 requires-python = ">=3.12"
-dependencies = ["pf2e-mcp>=0.2.0"]
+license = "Apache-2.0"
+license-files = ["LICENSE", "NOTICE.md"]
+dependencies = ["pf2e-mcp>=0.3.1"]
 
 [tool.uv]
 package = false

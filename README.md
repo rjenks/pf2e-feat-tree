@@ -17,3 +17,7 @@ uv run python src/generate.py       # -> dist/feat_tree.html (or pass an output 
 
 Rules text comes from the foundryvtt/pf2e data. Pathfinder is a trademark of
 Paizo Inc.; this is unofficial fan material.
+
+Source code is Apache-2.0 (`LICENSE`). The generated page embeds Paizo's
+OGL/ORC-licensed rules text; the page itself carries the required notices (footer button),
+and `NOTICE.md` explains them.

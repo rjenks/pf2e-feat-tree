@@ -419,21 +419,23 @@ dependencies = [
 ]
 
 [package.metadata]
-requires-dist = [{ name = "pf2e-mcp", specifier = ">=0.2.0" }]
+requires-dist = [{ name = "pf2e-mcp", specifier = ">=0.3.1" }]
 
 [[package]]
 name = "pf2e-mcp"
-version = "0.2.0"
+version = "0.3.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "httpx" },
+    { name = "jsonschema" },
     { name = "mcp", extra = ["cli"] },
     { name = "platformdirs" },
     { name = "pydantic" },
+    { name = "ruamel-yaml" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/bc/11/5c8520ee97118e24b7945ade8d1f89c6169c8921d79fb663c5915fbaf6a7/pf2e_mcp-0.2.0.tar.gz", hash = "sha256:b6f7fa74ca04cea2b336e1e77cfa9489c27b992a19d2204a56011db1259579b2", size = 228494, upload-time = "2026-09-01T03:31:54.308Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/fe/ed/0a083cdb7b2a179f82492a3d9b6b35e5420f2d4ec6af1c2b58e7814d423a/pf2e_mcp-0.3.1.tar.gz", hash = "sha256:693da0a8ba429127e2003ad0c551e77a9e7082d9a2897f5f5f4968200a749ef2", size = 387218, upload-time = "2026-10-17T22:14:36.044Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/f7/b4/0fdd171e4b1c589e2980a44543f7c5748e70b190060bcf1c140ae5fcb01b/pf2e_mcp-0.2.0-py3-none-any.whl", hash = "sha256:1434e0cff7fc7bd2ecaaadf6791d5107fcb9374414195cb774a3b57663a06b00", size = 225449, upload-time = "2026-09-01T03:31:52.301Z" },
+    { url = "https://files.pythonhosted.org/packages/bf/a8/bd98c855af4bf64a1648f5dd2c83eabd887c997e75031ac24c8c13ebc5ee/pf2e_mcp-0.3.1-py3-none-any.whl", hash = "sha256:a447c62395bc5dbd891f16752d89aa2b16cd7745516d4e9f010df333cfb8dc00", size = 383876, upload-time = "2026-10-17T22:14:34.537Z" },
 ]
 
 [[package]]
@@ -768,6 +770,15 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/ba/a5/9672e532fe02cd3b92c78cfd8743abca939d96853006c63835009a1ecb6f/rpds_py-2026.9.1-pp312-pypy312_pp73-musllinux_1_2_x86_64.whl", hash = "sha256:6b9bf3135b4ad5981df9a73d71a35272d650a2985ae9c2746357b24d59de2448", size = 591126, upload-time = "2026-10-04T16:32:29.274Z" },
     { url = "https://files.pythonhosted.org/packages/80/ef/3a9f8e4279c7920af561deed4cb7ebebed2794a8f608cf404d5eef14a105/rpds_py-2026.9.1-pp312-pypy312_pp80-macosx_10_12_x86_64.whl", hash = "sha256:56c6952a9b15047466d0c2347c446a761d4527f89976156341e68f0ce5cc08b0", size = 357108, upload-time = "2026-10-04T16:32:31.641Z" },
     { url = "https://files.pythonhosted.org/packages/b7/55/4b2fa381a583760aea5c92841e4e928a358e1c6511b129219e9c2826a226/rpds_py-2026.9.1-pp312-pypy312_pp80-macosx_11_0_arm64.whl", hash = "sha256:b242c27c8f836305a4a72df9cdd564386ac57b807bd252a063223331c9316b37", size = 346877, upload-time = "2026-10-04T16:32:34.061Z" },
+]
+
+[[package]]
+name = "ruamel-yaml"
+version = "0.19.1"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/c7/3b/ebda527b56beb90cb7652cb1c7e4f91f48649fbcd8d2eb2fb6e77cd3329b/ruamel_yaml-0.19.1.tar.gz", hash = "sha256:53eb66cd27849eff968ebf8f0bf61f46cdac2da1d1f3576dd4ccee9b25c31993", size = 142709, upload-time = "2026-01-02T16:50:31.84Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/b8/0c/51f6841f1d84f404f92463fc2b1ba0da357ca1e3db6b7fbda26956c3b82a/ruamel_yaml-0.19.1-py3-none-any.whl", hash = "sha256:27592957fedf6e0b62f281e96effd28043345e0e66001f97683aa9a40c667c93", size = 118102, upload-time = "2026-01-02T16:50:29.201Z" },
 ]
 
 [[package]]

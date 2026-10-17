@@ -228,7 +228,9 @@ nodes = {}
 def need(i):
     if i in nodes: return
     f = byid[i]
-    nodes[i] = {'n': f['name'], 'l': f['level'], 'r': f['rarity'], 'q': []}
+    nodes[i] = {'n': f['name'], 'l': f['level'], 'r': f['rarity'], 'q': [], 'c': card(f),
+                'g': [f'{k}: {n}' for k, n in groups_of(f)]}
+    if f.get('synthetic'): nodes[i]['s'] = 1
     for alts in reqs.get(i, []) + skreqs.get(i, []):
         for a in alts: need(a)
     nodes[i]['q'] = reqs.get(i, []) + skreqs.get(i, [])
@@ -290,6 +292,22 @@ for (kind, name) in sorted(set(members) | set(allmem), key=lambda x: x[1]):
     if xedges: data[kind][name]['x'] = {i: [al] for i, al in xedges.items() if i in allids}
 print({k: len(v) for k, v in data.items()}, len(nodes))
 font = rules_sql("select value from meta where key='actions_font_woff2_b64'", max_cell=500000)['rows'][0]['value']
-html = open(HERE / "src" / "template.html").read().replace('__FONT__', font).replace('__DATA__', json.dumps({'groups': data, 'nodes': nodes}, separators=(',', ':'))).replace('__VERSION__', version)
+# Licence notices: every page carries the OGL text and the ORC/Community Use attributions for the
+# sourcebooks of the feats it actually shows, since the page embeds their rules text.
+books = {'orc': set(), 'ogl': set()}
+for r in rules_sql("select id, is_remaster, source_book from entries where pack='feats'", limit=100000)['rows']:
+    if r['id'] in nodes and r['source_book']: books['orc' if r['is_remaster'] else 'ogl'].add(r['source_book'])
+def booklist(s): return ', '.join(f'<em>{_html.escape(b)}</em>' for b in sorted(s)) or '&mdash;'
+licenses = f"""<h4>Paizo Community Use Policy</h4>
+<p>This page uses trademarks and/or copyrights owned by Paizo Inc., used under Paizo&rsquo;s Community Use Policy (paizo.com/licenses/communityuse). We are expressly prohibited from charging you to use or access this content. This page is not published, endorsed, or specifically approved by Paizo. For more information about Paizo Inc. and Paizo products, visit paizo.com.</p>
+<h4>ORC License attribution notice</h4>
+<p>This work includes material from {booklist(books['orc'])}, &copy; Paizo Inc., used under the ORC License. The ORC License is available at paizo.com/orclicense and is registered with the U.S. Copyright Office, Library of Congress, TX&nbsp;9-307-067.</p>
+<h4>Open Game License content</h4>
+<p>Rules text on this page drawn from {booklist(books['ogl'])} is Open Game Content, licensed under the Open Game License v1.0a, reproduced in full below. The diagrams, layout and code are not Open Game Content.</p>
+<h4>Data and icons</h4>
+<p>Rules data comes from the foundryvtt/pf2e project (github.com/foundryvtt/pf2e), release {version}. The action icons use the community-made Pathfinder2eActions font, created by Reddit user u/baughberick and distributed by foundryvtt/pf2e. Pathfinder is a trademark of Paizo Inc.; this is unofficial fan material. Diagrams are drawn by Mermaid (MIT) with the ELK layout engine, loaded from the jsDelivr CDN, so this page needs a network connection.</p>
+<h4>Open Game License Version 1.0a</h4>
+<div class="ogl">{(HERE / 'src' / 'ogl.html').read_text(encoding='utf-8')}</div>"""
+html = open(HERE / "src" / "template.html").read().replace('__LICENSES__', licenses).replace('__FONT__', font).replace('__DATA__', json.dumps({'groups': data, 'nodes': nodes}, separators=(',', ':'))).replace('__VERSION__', version)
 OUT.parent.mkdir(parents=True, exist_ok=True)
-OUT.write_text(html)
+OUT.write_text(html, encoding="utf-8")
