@@ -1,12 +1,12 @@
 name: Build and publish to GitHub Pages
 
 # The page is built from the current foundryvtt/pf2e release, so besides
-# rebuilding on every push it is rebuilt weekly to pick up new releases.
+# rebuilding on every push it is rebuilt nightly to pick up new releases.
 on:
   push:
     branches: [main]
   schedule:
-    - cron: "17 6 * * 1"
+    - cron: "17 6 * * *"
   workflow_dispatch:
 
 permissions:
