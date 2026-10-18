@@ -20,6 +20,9 @@ byname = collections.defaultdict(list)
 for f in feats: byname[f['name'].lower()].append(f)
 byid = {f['id']: f for f in feats}
 
+# Prerequisites phrased as the spells a feat grants rather than the feat itself.
+SPELL_SOURCES = {'warden spells': 'initiate warden', 'animal feature warden spell': 'initiate warden',
+                 'one or more domain spells': 'domain initiate'}
 def names_from(p):
     k, raw = p['kind'], p['raw_text']
     s = json.loads(p['structured']) if p['structured'] else {}
@@ -28,9 +31,11 @@ def names_from(p):
     if k == 'compound_named':
         return [s['any_of']] if s.get('any_of') else [[x] for x in s.get('all_of', [])]
     if k == 'unresolved':
+        if raw.lower().strip() in SPELL_SOURCES: return [[raw]]
         return [[y.strip() for y in re.split(r'\bor\b', x)] for x in re.split(r',|;|\band\b', raw)]
     return []
 def cands(n):
+    n = SPELL_SOURCES.get(n.lower().strip(), n)
     n = re.sub(r'\s+in (?:that|the same|a|any) skill$', '', n.lower().strip())
     return byname.get(n) or byname.get(n + ' dedication') or []
 
@@ -331,6 +336,24 @@ for f in feats:
     if not m or m.group(2).lower() not in classes: continue
     a = arch_of(f)
     if a: access[(m.group(2).title(), a)]['basic' if m.group(1) else 'adv'].append(f['id'])
+# The class entry supplies the root node's card: flavour text, core stats and the class features by level.
+RANK = ['Untrained', 'Trained', 'Expert', 'Master', 'Legendary']
+class_cards = {}
+for r in rules_sql("select name, source_book, description, raw_json from entries where pack='classes'", limit=1000, max_cell=200000)['rows']:
+    sy = json.loads(r['raw_json'])['system']
+    flavour = clean(re.sub(r'<p>\s*<em>\s*@UUID\[[^\]]*\]\{[^}]*\}\s*</em>\s*</p>', '', r['description'] or ''))
+    key = ' or '.join(ABILITY[a] for a in sy['keyAbility']['value'])
+    sv = sy['savingThrows']
+    by_level = collections.defaultdict(list)
+    for it in sy['items'].values(): by_level[it['level']].append(it['name'])
+    feats_txt = '\n'.join(f"L{lv}: " + ', '.join(sorted(ns)) for lv, ns in sorted(by_level.items()))
+    skills = ', '.join(x.title() for x in sy['trainedSkills']['value'])
+    stats = (f"\ue002Key attribute\ue003 {key}\n\ue002Hit points\ue003 {sy['hp']} plus Constitution modifier per level\n"
+             f"\ue002Perception\ue003 {RANK[sy['perception']]}  \ue002Fortitude\ue003 {RANK[sv['fortitude']]}  "
+             f"\ue002Reflex\ue003 {RANK[sv['reflex']]}  \ue002Will\ue003 {RANK[sv['will']]}\n"
+             f"\ue002Trained skills\ue003 {skills + ' and ' if skills else ''}{sy['trainedSkills']['additional']} more plus your Intelligence modifier")
+    class_cards[r['name'].lower()] = {'d': flavour + '\n\n' + stats + '\n\n\ue002Class features\ue003\n' + feats_txt,
+                                      't': [], 'a': '', 'ag': '', 'p': '', 's': r['source_book'] or ''}
 extra = {}  # (kind,name) -> {feat id: [[access ids]]}
 for (kind, name) in sorted(set(members) | set(allmem), key=lambda x: x[1]):
     ids = members.get((kind, name), set())
@@ -367,7 +390,20 @@ for (kind, name) in sorted(set(members) | set(allmem), key=lambda x: x[1]):
     shown = closure_ids(tops) | allids | required
     solo = sorted((i for i in allmem[(kind, name)] if i not in shown), key=lambda i: (byid[i]['level'], byid[i]['name']))
     for i in solo: need(i)
+    cx = {}
+    # Each class diagram gets a common root so its separate trees hang off one node.
+    if kind == 'Class' and name.lower() in classes:
+        cid = f'class:{name}'
+        byid[cid] = {'id': cid, 'name': f'{name} Class', 'level': 0, 'category': 'classroot', 'traits': [], 'rarity': 'common',
+                     'description': f'Every {name} class feat that does not build on another {name} feat hangs off this node.', 'synthetic': True}
+        croots = [i for i in shown if (kind, name) in groups_of(byid[i])
+                  and all((kind, name) not in groups_of(byid[a]) for alts in reqs.get(i, []) for a in alts)]
+        if croots:
+            need(cid); nodes[cid]['k'] = 1
+            if name.lower() in class_cards: nodes[cid]['c'] = class_cards[name.lower()]
+            cx = {i: [[cid]] for i in croots}
     data[kind][name] = {'tops': tops, 'solo': solo, 'n': len(allids) + len(solo), 'mem': sorted(set(ids) | {i for i in closure_ids(tops) if (kind, name) in groups_of(byid[i])})}
+    if cx: data[kind][name]['x'] = cx
     if xedges: data[kind][name]['x'] = {i: [al] for i, al in xedges.items() if i in allids}
 print({k: len(v) for k, v in data.items()}, len(nodes))
 font = rules_sql("select value from meta where key='actions_font_woff2_b64'", max_cell=500000)['rows'][0]['value']

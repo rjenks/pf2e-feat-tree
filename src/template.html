@@ -69,7 +69,7 @@ let seq=0;
 const tip=$('tip');
 function showTip(fid,ev){const n=N[fid];if(!n)return;const c=n.c;tip.textContent='';
  const mk=(tag,txt,cls)=>{const e=document.createElement(tag);if(txt!=null)e.textContent=txt;if(cls)e.className=cls;return e};
- const h=mk('h3');const nm=mk('div',n.n);if(c.ag){nm.append(' ');nm.append(mk('span',c.ag,'ag'))}h.append(nm,mk('span',n.s?(/ \+\d$/.test(n.n)?'Attribute modifier':'Skill proficiency'):'Feat '+n.l));tip.append(h);
+ const h=mk('h3');const nm=mk('div',n.n);if(c.ag){nm.append(' ');nm.append(mk('span',c.ag,'ag'))}h.append(nm,mk('span',n.k?'Class':n.s?(/ \+\d$/.test(n.n)?'Attribute modifier':'Skill proficiency'):'Feat '+n.l));tip.append(h);
  const tr=mk('div',null,'tr');if(n.lg)tr.append(mk('b','Legacy','leg'));if(n.r&&n.r!=='common'){tr.append(mk('b',n.r,'rar'))}
  c.t.forEach(x=>tr.append(mk('b',x)));tip.append(tr);
  if(n.lg)tip.append(mk('div','Legacy content: from a pre-Remaster book, so it may be outdated or replaced in the Remaster rules.','lgn'));if(c.p){const p=mk('div',null,'m');p.append(mk('b','Prerequisites '),document.createTextNode(c.p));tip.append(p)}
@@ -122,11 +122,11 @@ async function draw(){const names=opts();writeHash();const out=$('out');
  for(const id of ids){const n=N[id];const ext=mem&&!mem.has(id)&&!n.s,rv=rivals(grp,id);lines.push(`${idx.get(id)}["${esc(n.n)}${n.s?'':'<br/>L'+n.l+(n.lg?' · legacy':'')}${ext?'<br/>'+esc('from '+n.g.slice(0,2).join(' / ')):''}${rv.length?'<br/>'+esc('or '+rv.join(', ')+' Dedication'):''}"]`);}
  let edges=0;
  for(const id of ids){for(const alts of qOf(grp,id)){for(const a of alts){lines.push(`${idx.get(id)} ${alts.length>1?'-.->':'-->'} ${idx.get(a)}`);edges++}}}
- lines.push('classDef unc fill:#ffd9a0,stroke:#b35c00,color:#222','classDef rare fill:#b9dcff,stroke:#0b5ea8,color:#222','classDef ext fill:#e6e6e6,stroke:#888,stroke-dasharray:4 3,color:#222','classDef leg font-style:italic','classDef hit stroke:#d00,stroke-width:4px','classDef sk fill:#d6f0e0,stroke:#2b8a57,color:#222');
+ lines.push('classDef unc fill:#ffd9a0,stroke:#b35c00,color:#222','classDef rare fill:#b9dcff,stroke:#0b5ea8,color:#222','classDef ext fill:#e6e6e6,stroke:#888,stroke-dasharray:4 3,color:#222','classDef leg font-style:italic','classDef hit stroke:#d00,stroke-width:4px','classDef sk fill:#d6f0e0,stroke:#2b8a57,color:#222','classDef cls fill:#e8dcf5,stroke:#6b3fa0,stroke-width:2px,color:#222');
  const by=(f)=>ids.filter(f).map(i=>idx.get(i)).join(',');
  const u=by(i=>!N[i].s&&N[i].r=='uncommon'),r=by(i=>N[i].r=='rare'||N[i].r=='unique'),e=by(i=>mem&&!mem.has(i)),h=q?by(i=>N[i].n.toLowerCase().includes(q)):'';
- if(u)lines.push(`class ${u} unc`);if(r)lines.push(`class ${r} rare`);if(e)lines.push(`class ${e} ext`);const lg=by(i=>N[i].lg);if(lg)lines.push(`class ${lg} leg`);if(h)lines.push(`class ${h} hit`);const sk=by(i=>N[i].s);if(sk)lines.push(`class ${sk} sk`);
- $('info').textContent=`${grp}: ${ids.length} feats in the diagram (${edges} prerequisite links), ${solo.length} with no feat or skill prerequisites below`;
+ if(u)lines.push(`class ${u} unc`);if(r)lines.push(`class ${r} rare`);if(e)lines.push(`class ${e} ext`);const lg=by(i=>N[i].lg);if(lg)lines.push(`class ${lg} leg`);if(h)lines.push(`class ${h} hit`);const sk=by(i=>N[i].s&&!N[i].k),ck=by(i=>N[i].k);if(ck)lines.push(`class ${ck} cls`);if(sk)lines.push(`class ${sk} sk`);
+ $('info').textContent=`${grp}: ${ids.filter(i=>!N[i].k).length} feats in the diagram (${edges} prerequisite links), ${solo.length} with no feat or skill prerequisites below`;
  try{const {svg}=await mermaid.render('m'+(++seq),lines.join('\n'));out.innerHTML=svg;applyZoom();wireTips()}
  catch(err){out.textContent='Diagram failed to render: '+err.message}}
 function renderSolo(solo){const el=$('solo');el.textContent='';if(!solo.length)return;
