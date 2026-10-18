@@ -1,4 +1,4 @@
-import json, re, collections, sys
+import json, math, re, collections, sys
 from pathlib import Path
 from pf2e_mcp.server.rules_tools import rules_sql
 HERE = Path(__file__).resolve().parent.parent
@@ -60,9 +60,16 @@ def owner(f, seen=()):
 parents_done = False
 
 import html as _html
-ex = {r['id']: r for r in rules_sql("select id, json_extract(raw_json,'$.system.actionType.value') at, json_extract(raw_json,'$.system.actions.value') ac, json_extract(raw_json,'$.system.prerequisites.value') pr, source_book, is_remaster from entries where pack='feats'", limit=100000, max_cell=20000)['rows']}
-def clean(h):
+ex = {r['id']: r for r in rules_sql("select id, json_extract(raw_json,'$.system.actionType.value') at, json_extract(raw_json,'$.system.actions.value') ac, json_extract(raw_json,'$.system.prerequisites.value') pr, json_extract(raw_json,'$.system.rules') rl, source_book, is_remaster from entries where pack='feats'", limit=100000, max_cell=20000)['rows']}
+def clean(h, level=None):
     h = h or ''
+    if level is not None:  # resolve level-scaled dice such as ((2*floor(@actor.level/4))d4) at the feat's own level
+        def scaled(m):
+            try:
+                n = eval(m.group(1).replace('@actor.level', str(level)), {'floor': math.floor, '__builtins__': {}})
+                return f'@Damage[{n}d{m.group(2)}['
+            except Exception: return m.group(0)
+        h = re.sub(r'@Damage\[\(\(([\d*+/ ()a-z@.]*@actor\.level[\d*+/ ()a-z@.]*)\)d(\d+)\)\[', scaled, h)
     h = re.sub(r'@UUID\[[^\]]*\]\{([^}]*)\}', r'\1', h)
     h = re.sub(r'@UUID\[[^\]]*\]', '', h)
     def chk(m):
@@ -73,7 +80,7 @@ def clean(h):
     h = re.sub(r'@Check\[([^\]]*)\](?:\{([^}]*)\})?', chk, h)
     def dmg(m):
         if m.group(2): return m.group(2)
-        return re.sub(r'\[([^\]]*)\]', r' \1', m.group(1).split('|')[0]).strip()
+        return re.sub(r'\[(?!healing\])([^\]]*)\]', r' \1', re.sub(r'\[healing\]', '', m.group(1).split('|')[0])).strip()
     h = re.sub(r'@Damage\[((?:[^\[\]]|\[[^\]]*\])*)\](?:\{([^}]*)\})?', dmg, h)
     h = re.sub(r'\[\[/(?:br)?r ([^\]]*)\]\](?:\{([^}]*)\})?', lambda m: m.group(2) or m.group(1).split('#')[0].strip(), h)
     def tpl(m):
@@ -83,11 +90,35 @@ def clean(h):
     h = re.sub(r'@\w+\[[^\]]*\]\{([^}]*)\}', r'\1', h)
     h = re.sub(r'@\w+\[[^\]]*\]', '', h)
     h = re.sub(r'<span class="action-glyph">([^<]*)</span>', lambda m: '\ue000' + m.group(1) + '\ue001', h)
-    h = re.sub(r'</(p|li|h\d|div|tr)>|<br\s*/?>|<hr\s*/?>', '\n', h)
+    h = re.sub(r'</?(?:strong|b)>', lambda m: '\ue003' if m.group(0)[1] == '/' else '\ue002', h)
+    h = re.sub(r'<hr\s*/?>', '', h)
+    h = re.sub(r'</(p|h\d|div)>', '\n\n', h)
+    h = re.sub(r'</(li|tr)>|<br\s*/?>', '\n', h)
     h = re.sub(r'<li[^>]*>', '• ', h)
     h = re.sub(r'<[^>]+>', '', h)
     h = _html.unescape(h)
-    return re.sub(r'\n\s*\n\s*\n+', '\n\n', re.sub(r'[ \t]+', ' ', h)).strip()
+    h = re.sub(r'\n\s*\n\s*\n+', '\n\n', re.sub(r'[ \t]+', ' ', h))
+    h = re.sub(r'\s*([])\s*', r'\1', h)  # nested-action blocks are laid out by the card, not by blank lines
+    return re.sub(r'[^]*', lambda m: re.sub(r'\n\s*\n', '\n', m.group(0)), h).strip()
+# A heading paragraph with an action glyph starts a nested action that runs to the end of the text; mark it as a block.
+# If the same action is also granted (often just an @Embed stub here), drop this copy in favour of the full granted text.
+def nest_actions(h, granted=''):
+    def block(m):
+        return '' if f'<strong>{m.group(2)}</strong>' in granted else '' + m.group(1) + ''
+    return re.sub(r'(?:<hr\s*/?>\s*)?(<p>\s*<strong>([^<]+)</strong>\s*<span class="action-glyph">[^<]*</span>\s*</p>.*)', block, h or '', count=1, flags=re.S)
+# Feats that grant an action only link to it; pull the action's own text in so the card shows what it does.
+acts = {r['id']: r for r in rules_sql("select id,name,description,json_extract(raw_json,'$.system.actionType.value') at, json_extract(raw_json,'$.system.actions.value') ac from entries where pack in ('actions','adventure-specific-actions')", limit=100000, max_cell=200000)['rows']}
+def granted_actions(f):
+    try: rules = json.loads(ex.get(f['id'], {}).get('rl') or '[]')
+    except Exception: return ''
+    out = []
+    for r in rules:
+        m = re.fullmatch(r'Compendium\.pf2e\.(?:actionspf2e|adventure-specific-actions)\.Item\.(\w+)', r.get('uuid') or '') if r.get('key') == 'GrantItem' else None
+        a = m and acts.get(m.group(1))
+        if not a or a['name'] in (f.get('description') or '') and not a['description']: continue
+        g = {'reaction': 'R', 'free': 'f'}.get(a['at']) or (a['ac'] if a['at'] == 'action' and str(a['ac']) in '123' else '')
+        out.append(f"<p><strong>{a['name']}</strong>" + (f' <span class="action-glyph">{g}</span>' if g else '') + '</p>' + (a['description'] or '') + '')
+    return ''.join(out)
 def card(f):
     e = ex.get(f['id'], {})
     try: pr = '; '.join(x['value'] for x in json.loads(e.get('pr') or '[]'))
@@ -95,7 +126,8 @@ def card(f):
     at, ac = e.get('at'), e.get('ac')
     act = {'reaction': 'Reaction', 'free': 'Free action'}.get(at) or (f'{ac} action' + ('s' if ac and int(ac) > 1 else '') if at == 'action' and ac else '')
     glyph = {'reaction': 'R', 'free': 'f'}.get(at) or (str(ac) if at == 'action' and ac in (1, 2, 3, '1', '2', '3') else '')
-    return {'d': clean(f.get('description')), 't': SHOWN.get(f['id'], f['traits']), 'a': act, 'ag': glyph, 'p': pr, 's': e.get('source_book') or ''}
+    ga = granted_actions(f)
+    return {'d': clean(nest_actions(f.get('description'), ga) + ga, f['level']), 't': SHOWN.get(f['id'], f['traits']), 'a': act, 'ag': glyph, 'p': pr, 's': e.get('source_book') or ''}
 SKILLS = {'acrobatics','arcana','athletics','crafting','deception','diplomacy','intimidation','medicine','nature','occultism','performance','religion','society','stealth','survival','thievery'}
 _own_skills = {}
 for p in prs:
