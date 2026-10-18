@@ -32,13 +32,16 @@ footer{color:var(--mut);font-size:12px;padding:6px 16px;border-top:1px solid var
 #lic::backdrop{background:rgba(0,0,0,.45)}#lic .in{padding:12px 20px 18px;overflow:auto;max-height:86vh;font-size:13px;line-height:1.45}
 #lic h2{font-size:16px;margin:0 0 6px;display:flex;justify-content:space-between;align-items:center}#lic h4{margin:14px 0 4px;font-size:13px}#lic p{margin:5px 0}#lic .ogl p{font-size:12px;color:var(--mut)}
 footer button{padding:1px 8px;font-size:12px;margin-left:6px}
+footer a.gh{color:inherit;display:inline-flex;align-items:center;gap:4px;margin-left:10px;vertical-align:middle;text-decoration:none}
+footer a.gh:hover{color:var(--fg,inherit);text-decoration:underline}
+footer a.gh svg{fill:currentColor}
 </style></head><body>
 <header><h1>PF2e Feat Prerequisite Diagrams</h1>
 <div class="bar"><span id="tabs"></span><select id="grp"></select><input id="q" type="search" placeholder="Find a feat…">
 <button id="zo" title="Zoom out">−</button><button id="zi" title="Zoom in">+</button>
 <span class="legend"><span><i style="background:#fff"></i>common</span><span><i style="background:#ffd9a0"></i>uncommon</span><span><i style="background:#b9dcff"></i>rare</span><span><i style="background:#e6e6e6;border-style:dashed"></i>from another group</span><span><i style="background:#d6f0e0"></i>skill / attribute requirement</span><span><em>italic · legacy</em> = pre-Remaster</span><span>arrow = “requires”; dashed = one of several alternatives</span></span></div></header>
 <div id="tip"></div><div id="info"></div><div id="wrap"><div id="out"></div><div id="solo"></div></div>
-<footer>Read right to left: each feat points to the feats it requires. Feats with no feat or skill prerequisites are listed below the diagram. <button id="licb">Licenses &amp; attribution</button></footer>
+<footer>Read right to left: each feat points to the feats it requires. Feats with no feat or skill prerequisites are listed below the diagram. <button id="licb">Licenses &amp; attribution</button><a class="gh" href="https://github.com/rjenks/pf2e-feat-tree" target="_blank" rel="noopener" title="View on GitHub"><svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>GitHub</a></footer>
 <dialog id="lic"><div class="in"><h2>Licenses &amp; attribution <button id="licx">Close</button></h2>__LICENSES__</div></dialog>
 <script type="module">
 import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11.4.1/dist/mermaid.esm.min.mjs';
