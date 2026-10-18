@@ -419,11 +419,11 @@ dependencies = [
 ]
 
 [package.metadata]
-requires-dist = [{ name = "pf2e-mcp", specifier = ">=0.3.1" }]
+requires-dist = [{ name = "pf2e-mcp", specifier = ">=0.4.0" }]
 
 [[package]]
 name = "pf2e-mcp"
-version = "0.3.1"
+version = "0.4.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "httpx" },
@@ -433,9 +433,9 @@ dependencies = [
     { name = "pydantic" },
     { name = "ruamel-yaml" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/fe/ed/0a083cdb7b2a179f82492a3d9b6b35e5420f2d4ec6af1c2b58e7814d423a/pf2e_mcp-0.3.1.tar.gz", hash = "sha256:693da0a8ba429127e2003ad0c551e77a9e7082d9a2897f5f5f4968200a749ef2", size = 387218, upload-time = "2026-10-17T22:14:36.044Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/7b/d4/d2d384f2ea55407b1f88edd12058c9587ea0cdef29add365815db38a43ab/pf2e_mcp-0.4.0.tar.gz", hash = "sha256:8c7fdeaf985ba5c1bcea66d033e33209e386421db3e69bc7fb42e419eaa936e7", size = 388334, upload-time = "2026-10-18T22:07:33.198Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/bf/a8/bd98c855af4bf64a1648f5dd2c83eabd887c997e75031ac24c8c13ebc5ee/pf2e_mcp-0.3.1-py3-none-any.whl", hash = "sha256:a447c62395bc5dbd891f16752d89aa2b16cd7745516d4e9f010df333cfb8dc00", size = 383876, upload-time = "2026-10-17T22:14:34.537Z" },
+    { url = "https://files.pythonhosted.org/packages/9d/18/a73ba3444611968752ff52a71dad2f1f8f8aa9036a1996b723839208e01b/pf2e_mcp-0.4.0-py3-none-any.whl", hash = "sha256:3cbbcf9099dc6822613f541ecc3612428c7149c1ab10767cc42597f2a93c3599", size = 384895, upload-time = "2026-10-18T22:07:31.495Z" },
 ]
 
 [[package]]

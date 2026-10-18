@@ -7,6 +7,10 @@ OUT = Path(sys.argv[1]) if len(sys.argv) > 1 else HERE / 'dist' / 'feat_tree.htm
 feats = rules_sql("select id,name,level,category,traits,rarity,description from entries where pack='feats'", limit=100000, max_cell=200000)['rows']
 prs = json.load(open(DATA / "prereq_rows.json"))
 meta = json.load(open(DATA / "meta.json"))
+# Feats of other classes an archetype lets you take as archetype feats.
+additional = collections.defaultdict(list)
+for r in rules_sql("select archetype, feat_id from archetype_additional_feats order by level, feat_name", limit=100000)['rows']:
+    additional[r['archetype']].append(r['feat_id'])
 version = rules_sql("select value from meta where key='data_version'")['rows'][0]['value']
 ancestries = {a['name'].lower() for a in meta['anc']}
 classes = {c['class_slug'] for c in meta['cls']}
@@ -368,6 +372,7 @@ for (kind, name) in sorted(set(members) | set(allmem), key=lambda x: x[1]):
                 if reqs.get(i): continue
                 alts = (acc['basic'] + acc['adv']) if byid[i]['level'] <= 2 else acc['adv']
                 if alts: xedges[i] = alts
+    addl = [i for i in additional.get(name, []) if kind == 'Archetype' and i not in ids]
     allids = set(ids) | set(xedges) | {i for i in cls_ids if any(p in xedges or p in cls_ids for p in [i])} if xedges else set(ids)
     if xedges:
         allids = set(ids) | cls_ids
@@ -380,6 +385,11 @@ for (kind, name) in sorted(set(members) | set(allmem), key=lambda x: x[1]):
             return ok
         for i in cls_ids: reach(i)
         allids = set(ids) | keep
+    dedic = [i for i in allmem[(kind, name)] if 'dedication' in byid[i]['traits']]
+    allids |= set(addl)
+    if dedic:  # additional feats hang off the dedication unless they already build on a feat shown here
+        for i in addl:
+            if not any(a in allids for alts in reqs.get(i, []) for a in alts): xedges.setdefault(i, dedic[:1])
     required = {a for i in allids for alts in reqs.get(i, []) for a in alts} | {a for i in xedges if i in allids for a in xedges[i]}
     tops = sorted((i for i in allids if i not in required), key=lambda i: (-byid[i]['level'], byid[i]['name']))
     for i in tops: need(i)

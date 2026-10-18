@@ -5,7 +5,7 @@ description = "Standalone HTML feat prerequisite diagrams generated from the pf2
 requires-python = ">=3.12"
 license = "Apache-2.0"
 license-files = ["LICENSE", "NOTICE.md"]
-dependencies = ["pf2e-mcp>=0.3.1"]
+dependencies = ["pf2e-mcp>=0.4.0"]
 
 [tool.uv]
 package = false
