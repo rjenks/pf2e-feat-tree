@@ -61,15 +61,59 @@ parents_done = False
 
 import html as _html
 ex = {r['id']: r for r in rules_sql("select id, json_extract(raw_json,'$.system.actionType.value') at, json_extract(raw_json,'$.system.actions.value') ac, json_extract(raw_json,'$.system.prerequisites.value') pr, json_extract(raw_json,'$.system.rules') rl, source_book, is_remaster from entries where pack='feats'", limit=100000, max_cell=20000)['rows']}
+# Foundry evaluates formulas such as ternary(gte(@actor.level,12),2,1)d6 against the character; a card has no character,
+# so resolve them at the feat's own level (and unknown skill ranks as untrained), and name stats we can't resolve.
+class Roll:
+    def __init__(s, dice=(), flat=0): s.dice, s.flat = list(dice), flat
+    def __add__(s, o):
+        o = o if isinstance(o, Roll) else Roll((), o)
+        return Roll(s.dice + o.dice, s.flat + o.flat)
+    __radd__ = __add__
+    def __neg__(s): return Roll([(-n, m) for n, m in s.dice], -s.flat)
+    def __sub__(s, o): return s + -(o if isinstance(o, Roll) else Roll((), o))
+    def __rsub__(s, o): return -s + o
+    def __str__(s):
+        by = collections.OrderedDict()
+        for n, m in s.dice: by[m] = by.get(m, 0) + n
+        t = '+'.join(f'{n}d{m}' for m, n in by.items() if n)
+        return t + (f'{s.flat:+d}' if s.flat and t else str(s.flat) if s.flat or not t else '')
+class _D:
+    def __init__(s, m): s.m = m
+    def __rmatmul__(s, n): return Roll([(int(n), s.m)])
+FORMULA_ENV = {'__builtins__': {}, '_D': _D, 'floor': math.floor, 'ceil': math.ceil, 'max': max, 'min': min, 'abs': abs,
+               'ternary': lambda c, a, b: a if c else b, 'gte': lambda a, b: a >= b, 'gt': lambda a, b: a > b,
+               'lte': lambda a, b: a <= b, 'lt': lambda a, b: a < b, 'eq': lambda a, b: a == b}
+ABILITY = {'str': 'Strength', 'dex': 'Dexterity', 'con': 'Constitution', 'int': 'Intelligence', 'wis': 'Wisdom', 'cha': 'Charisma'}
+def formula(f, level):
+    f = f.strip()
+    py = re.sub(r'@(?:actor|item)\.level\b', str(level if level is not None else 0), f)
+    py = re.sub(r'@actor\.(?:system\.)?skills\.\w+\.rank\b', '0', py)
+    py = re.sub(r'(?<=[\d)])\s*d(\d+)\b', r'@_D(\1)', py)
+    if re.fullmatch(r'[\w\s.,()+\-*/@]*', py):
+        try:
+            r = eval(py, FORMULA_ENV)
+            return str(r) if isinstance(r, Roll) else str(int(r)) if r == int(r) else str(r)
+        except Exception: pass
+    f = re.sub(r'@actor\.(?:system\.)?abilities\.(\w+)\.mod\b', lambda m: ABILITY.get(m.group(1), m.group(1)) + ' modifier', f)
+    f = re.sub(r'@(?:actor|item)\.[\w.]+', '(chosen type)', f)
+    return f
+def split_top(s, sep=','):
+    out, depth, cur = [], 0, ''
+    for c in s:
+        depth += c in '([' ; depth -= c in ')]'
+        if c == sep and not depth: out.append(cur); cur = ''
+        else: cur += c
+    return out + [cur]
+def damage(body, level):
+    parts = []
+    for comp in split_top(body.split('|')[0]):
+        m = re.fullmatch(r'(.*?)(?:\[([^\[\]]*)\])?', comp.strip(), re.S)
+        types = ' '.join(t for t in (m.group(2) or '').split(',') if t != 'healing')
+        types = re.sub(r'@(?:actor|item)\.[\w.]+', '', types).strip()  # the type is picked by a feat choice we can't see
+        parts.append((formula(m.group(1), level) + ' ' + types).strip())
+    return ' plus '.join(parts)
 def clean(h, level=None):
     h = h or ''
-    if level is not None:  # resolve level-scaled dice such as ((2*floor(@actor.level/4))d4) at the feat's own level
-        def scaled(m):
-            try:
-                n = eval(m.group(1).replace('@actor.level', str(level)), {'floor': math.floor, '__builtins__': {}})
-                return f'@Damage[{n}d{m.group(2)}['
-            except Exception: return m.group(0)
-        h = re.sub(r'@Damage\[\(\(([\d*+/ ()a-z@.]*@actor\.level[\d*+/ ()a-z@.]*)\)d(\d+)\)\[', scaled, h)
     h = re.sub(r'@UUID\[[^\]]*\]\{([^}]*)\}', r'\1', h)
     h = re.sub(r'@UUID\[[^\]]*\]', '', h)
     def chk(m):
@@ -80,9 +124,10 @@ def clean(h, level=None):
     h = re.sub(r'@Check\[([^\]]*)\](?:\{([^}]*)\})?', chk, h)
     def dmg(m):
         if m.group(2): return m.group(2)
-        return re.sub(r'\[(?!healing\])([^\]]*)\]', r' \1', re.sub(r'\[healing\]', '', m.group(1).split('|')[0])).strip()
+        return damage(m.group(1), level)
     h = re.sub(r'@Damage\[((?:[^\[\]]|\[[^\]]*\])*)\](?:\{([^}]*)\})?', dmg, h)
-    h = re.sub(r'\[\[/(?:br)?r ([^\]]*)\]\](?:\{([^}]*)\})?', lambda m: m.group(2) or m.group(1).split('#')[0].strip(), h)
+    h = re.sub(r'\[\[/(?:br|gm)?r ([^\]]*)\]\](?:\{([^}]*)\})?', lambda m: m.group(2) or formula(m.group(1).split('#')[0], level), h)
+    h = re.sub(r'\[\[/act ([\w-]+)[^\]]*\]\](?:\{([^}]*)\})?', lambda m: m.group(2) or act_names.get(m.group(1)) or m.group(1).replace('-', ' ').title(), h)
     def tpl(m):
         d = dict(x.split(':', 1) for x in m.group(1).split('|') if ':' in x)
         return f"{d.get('distance', '')}-foot {d.get('type', 'area')}"
@@ -107,7 +152,8 @@ def nest_actions(h, granted=''):
         return '' if f'<strong>{m.group(2)}</strong>' in granted else '' + m.group(1) + ''
     return re.sub(r'(?:<hr\s*/?>\s*)?(<p>\s*<strong>([^<]+)</strong>\s*<span class="action-glyph">[^<]*</span>\s*</p>.*)', block, h or '', count=1, flags=re.S)
 # Feats that grant an action only link to it; pull the action's own text in so the card shows what it does.
-acts = {r['id']: r for r in rules_sql("select id,name,description,json_extract(raw_json,'$.system.actionType.value') at, json_extract(raw_json,'$.system.actions.value') ac from entries where pack in ('actions','adventure-specific-actions')", limit=100000, max_cell=200000)['rows']}
+acts = {r['id']: r for r in rules_sql("select id,slug,name,description,json_extract(raw_json,'$.system.actionType.value') at, json_extract(raw_json,'$.system.actions.value') ac from entries where pack in ('actions','adventure-specific-actions')", limit=100000, max_cell=200000)['rows']}
+act_names = {a['slug']: a['name'] for a in acts.values()}
 def granted_actions(f):
     try: rules = json.loads(ex.get(f['id'], {}).get('rl') or '[]')
     except Exception: return ''
