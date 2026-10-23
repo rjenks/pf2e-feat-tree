@@ -55,11 +55,15 @@ const $=id=>document.getElementById(id);
 $('licb').onclick=()=>$('lic').showModal();$('licx').onclick=()=>$('lic').close();
 const hasQ=ids=>!q||ids.some(i=>N[i].n.toLowerCase().includes(q));
 function qRaw(g,id){const x=(G[tab][g].x||{})[id];return x?N[id].q.concat(x):N[id].q}
-// In an archetype diagram, drop rival archetypes' Dedications from "A or B Dedication" alternatives;
-// the dropped names are returned so the feat can note them.
-const isRival=(g,a)=>tab==='Archetype'&&N[a].n.endsWith(' Dedication')&&N[a].g[0]!=='Archetype: '+g;
-function qOf(g,id){return qRaw(g,id).map(al=>{const k=al.filter(a=>!isRival(g,a));return k.length?k:al})}
-function rivals(g,id){const o=[];for(const al of qRaw(g,id)){const k=al.filter(a=>!isRival(g,a));if(k.length&&k.length<al.length)al.filter(a=>isRival(g,a)).forEach(a=>o.push(N[a].n.replace(/ Dedication$/,'')))}return o}
+// In an archetype diagram, drop rival archetypes' Dedications and class roots from "A or B Dedication" alternatives;
+// in a class diagram, drop other classes' roots, and Dedications offered beside this class ("Guardian or Sentinel Dedication").
+// The dropped ones are returned so the feat can note them.
+const isDed=a=>N[a].n.endsWith(' Dedication');
+const isRival=(g,a,al)=>tab==='Archetype'?N[a].k||isDed(a)&&N[a].g[0]!=='Archetype: '+g
+ :tab==='Class'&&(N[a].k?a!=='class:'+g:isDed(a)&&al.includes('class:'+g));
+function qOf(g,id){return qRaw(g,id).map(al=>{const k=al.filter(a=>!isRival(g,a,al));return k.length?k:al.every(a=>N[a].k)?null:al}).filter(al=>al)}
+function rivals(g,id){const o=[];for(const al of qRaw(g,id)){const k=al.filter(a=>!isRival(g,a,al));if(k.length&&k.length<al.length)al.filter(a=>isRival(g,a,al)).forEach(a=>o.push(a))}
+ const d=o.filter(a=>!N[a].k).map(a=>N[a].n.replace(/ Dedication$/,''));return o.filter(a=>N[a].k).map(a=>N[a].n).concat(d.length?[d.join(', ')+' Dedication']:[])}
 function closure(g){const own=new Set(),all=new Set(),st=[...G[tab][g].tops];
  const memberAll=Object.keys(N);// members = those listed via tops + required chain
  while(st.length){const i=st.pop();if(all.has(i))continue;all.add(i);qOf(g,i).forEach(a=>a.forEach(c=>st.push(c)))}
@@ -122,7 +126,7 @@ async function draw(){const names=opts();writeHash();const out=$('out');
  const mem=G[tab][grp].mem?new Set(G[tab][grp].mem):null;
  const lines=['flowchart LR'];
  const esc=s=>s.replace(/"/g,'#quot;');
- for(const id of ids){const n=N[id];const ext=mem&&!mem.has(id)&&!n.s,rv=rivals(grp,id);lines.push(`${idx.get(id)}["${esc(n.n)}${n.s?'':'<br/>L'+n.l+(n.lg?' · legacy':'')}${ext?'<br/>'+esc('from '+n.g.slice(0,2).join(' / ')):''}${rv.length?'<br/>'+esc('or '+rv.join(', ')+' Dedication'):''}"]`);}
+ for(const id of ids){const n=N[id];const ext=mem&&!mem.has(id)&&!n.s,rv=rivals(grp,id);lines.push(`${idx.get(id)}["${esc(n.n)}${n.s?'':'<br/>L'+n.l+(n.lg?' · legacy':'')}${ext?'<br/>'+esc('from '+n.g.slice(0,2).join(' / ')):''}${rv.length?'<br/>'+esc('or '+rv.join(', ')):''}"]`);}
  let edges=0;
  for(const id of ids){for(const alts of qOf(grp,id)){for(const a of alts){lines.push(`${idx.get(a)} ${alts.length>1?'-.->':'-->'} ${idx.get(id)}`);edges++}}}
  lines.push('classDef unc fill:#ffd9a0,stroke:#b35c00,color:#222','classDef rare fill:#b9dcff,stroke:#0b5ea8,color:#222','classDef ext fill:#e6e6e6,stroke:#888,stroke-dasharray:4 3,color:#222','classDef leg font-style:italic','classDef hit stroke:#d00,stroke-width:4px','classDef sk fill:#d6f0e0,stroke:#2b8a57,color:#222','classDef cls fill:#e8dcf5,stroke:#6b3fa0,stroke-width:2px,color:#222');

@@ -38,10 +38,22 @@ def names_from(p):
         if raw.lower().strip() in SPELL_SOURCES: return [[raw]]
         return [[y.strip() for y in re.split(r'\bor\b', x)] for x in re.split(r',|;|\band\b', raw)]
     return []
-def cands(n):
+def norm(n):
     n = SPELL_SOURCES.get(n.lower().strip(), n)
-    n = re.sub(r'\s+in (?:that|the same|a|any) skill$', '', n.lower().strip())
-    return byname.get(n) or byname.get(n + ' dedication') or []
+    return re.sub(r'\s+in (?:that|the same|a|any) skill$', '', n.lower().strip())
+def cands(n, dedication=True):
+    n = norm(n)
+    return byname.get(n) or (dedication and byname.get(n + ' dedication')) or []
+# Class features and actions by name, with the classes they belong to: a class feat needing "champion's reaction"
+# means its own class feature, not the archetype feat of the same name.
+features = collections.defaultdict(set)
+for r in rules_sql("select name, traits from entries where pack in ('class-features', 'actions')", limit=100000)['rows']:
+    features[r['name'].lower()].update(json.loads(r['traits'] or '[]'))
+def class_root(name):
+    cid = f'class:{name}'
+    byid.setdefault(cid, {'id': cid, 'name': f'{name} Class', 'level': 0, 'category': 'classroot', 'traits': [], 'rarity': 'common',
+                          'description': f'Every {name} class feat that does not build on another {name} feat hangs off this node.', 'synthetic': True, 'cls': name.lower()})
+    return cid
 
 
 def arch_all(f, seen=()):
@@ -205,7 +217,8 @@ def groups_of(f):
     if 'archetype' in t:
         return [('Archetype', a) for a in (arch_all(f) or ['Unassigned archetype feats'])]
     o = owner(f)
-    if o: return [('Archetype', a) for a in o]
+    # A class feat stays with its class even when an archetype also grants it ("Guardian or Sentinel Dedication").
+    if o: return [('Class', x.title()) for x in t if x in classes and f['category'] == 'class'] + [('Archetype', a) for a in o]
     if f['category'] == 'skill':
         return [('Skill', s) for s in skills_of(f)] or [('Skill', 'No specific skill')]
     if f['category'] == 'ancestry':
@@ -230,10 +243,21 @@ def pick(cs, me):
 for p in prs:
     me = byid.get(p['id'])
     if not me: continue
+    arch = 'archetype' in me['traits']
+    own = set() if arch else {t for t in me['traits'] if t in classes}
     for alts in names_from(p):
         ids = []
         for n in alts:
-            cs = [c for c in cands(n) if c['id'] != me['id']]
+            k = norm(n)
+            # "Guardian or Sentinel Dedication" on a guardian feat: the guardian alternative is the class itself.
+            cls = next((c for c in own if k in (c, c + ' dedication')), None)
+            if cls:
+                cid = class_root(cls.title())
+                if cid not in ids: ids.append(cid)
+                continue
+            # Free-text prerequisites only name a Dedication by its bare archetype name on archetype feats.
+            cs = [c for c in cands(n, dedication=arch or p['kind'] != 'unresolved') if c['id'] != me['id']]
+            if own & features.get(k, set()): cs = [c for c in cs if 'archetype' not in c['traits']]
             if cs:
                 c = pick(cs, me)
                 if c['id'] not in ids: ids.append(c['id'])
@@ -317,6 +341,9 @@ def need(i):
     f = byid[i]
     nodes[i] = {'n': f['name'], 'l': f['level'], 'r': f['rarity'], 'q': [], 'c': card(f),
                 'g': [f'{k}: {n}' for k, n in groups_of(f)]}
+    if f['category'] == 'classroot':
+        nodes[i]['k'] = 1
+        if f['cls'] in class_cards: nodes[i]['c'] = class_cards[f['cls']]
     if f.get('synthetic'): nodes[i]['s'] = 1
     elif ex.get(i, {}).get('is_remaster') == 0: nodes[i]['lg'] = 1  # pre-Remaster (legacy) content
     for alts in reqs.get(i, []) + skreqs.get(i, []):
@@ -403,15 +430,12 @@ for (kind, name) in sorted(set(members) | set(allmem), key=lambda x: x[1]):
     cx = {}
     # Each class diagram gets a common root so its separate trees hang off one node.
     if kind == 'Class' and name.lower() in classes:
-        cid = f'class:{name}'
-        byid[cid] = {'id': cid, 'name': f'{name} Class', 'level': 0, 'category': 'classroot', 'traits': [], 'rarity': 'common',
-                     'description': f'Every {name} class feat that does not build on another {name} feat hangs off this node.', 'synthetic': True}
+        cid = class_root(name)
         croots = [i for i in shown if (kind, name) in groups_of(byid[i])
                   and all((kind, name) not in groups_of(byid[a]) for alts in reqs.get(i, []) for a in alts)]
         if croots:
-            need(cid); nodes[cid]['k'] = 1
-            if name.lower() in class_cards: nodes[cid]['c'] = class_cards[name.lower()]
-            cx = {i: [[cid]] for i in croots}
+            need(cid)
+            cx = {i: [[cid]] for i in croots if not any(cid in alts for alts in reqs.get(i, []))}
     data[kind][name] = {'tops': tops, 'solo': solo, 'n': len(allids) + len(solo), 'mem': sorted(set(ids) | {i for i in closure_ids(tops) if (kind, name) in groups_of(byid[i])})}
     if cx: data[kind][name]['x'] = cx
     if xedges: data[kind][name]['x'] = {i: [al] for i, al in xedges.items() if i in allids}
