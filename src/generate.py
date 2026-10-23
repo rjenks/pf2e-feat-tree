@@ -358,15 +358,17 @@ def closure_ids(tops):
         for alts in reqs.get(i, []): st.extend(alts)
     return seen
 data = {'Class': {}, 'Ancestry': {}, 'Archetype': {}, 'Skill': {}, 'General': {}}
-# Archetype feats that grant "a class feat": Basic X (levels 1-2) / Advanced X (any level)
-access = collections.defaultdict(lambda: {'basic': [], 'adv': []})  # (class title, archetype) -> feat ids
+# Archetype feats that grant "a class feat": Basic X (levels 1-2) / Advanced X, which counts your class level as half
+# your character level for its prerequisites, so at most level 10 at character level 20.
+MAX_LEVEL = 20
+access = collections.defaultdict(dict)  # (class title, archetype) -> {feat id: highest class feat level it can grant}
 for f in feats:
     if 'archetype' not in f['traits'] or 'dedication' in f['traits']: continue
-    txt = re.sub(r'<[^>]+>', ' ', f.get('description') or '')[:400]
+    txt = re.sub(r'\s+', ' ', re.sub(r'<[^>]+>', ' ', f.get('description') or ''))[:400]
     m = re.search(r'You gain (?:a|an|one) (1st- or 2nd-level )?(\w+) feat\b', txt)
     if not m or m.group(2).lower() not in classes: continue
     a = arch_of(f)
-    if a: access[(m.group(2).title(), a)]['basic' if m.group(1) else 'adv'].append(f['id'])
+    if a: access[(m.group(2).title(), a)][f['id']] = 2 if m.group(1) else MAX_LEVEL // 2 if 'equal to half your' in txt or 'is half your' in txt else MAX_LEVEL
 # The class entry supplies the root node's card: flavour text, core stats and the class features by level.
 RANK = ['Untrained', 'Trained', 'Expert', 'Master', 'Legendary']
 class_cards = {}
@@ -394,10 +396,10 @@ for (kind, name) in sorted(set(members) | set(allmem), key=lambda x: x[1]):
         for (cls, arch), acc in access.items():
             if arch != name or ('Class', cls) not in members: continue
             ctops = [i for i in members[('Class', cls)]]
-            cls_ids = {i for i in closure_ids(ctops) if ('Class', cls) in groups_of(byid[i])}
+            cls_ids = {i for i in closure_ids(ctops) if ('Class', cls) in groups_of(byid[i]) and byid[i]['level'] <= max(acc.values())}
             for i in cls_ids:
                 if reqs.get(i): continue
-                alts = (acc['basic'] + acc['adv']) if byid[i]['level'] <= 2 else acc['adv']
+                alts = sorted((a for a, cap in acc.items() if byid[i]['level'] <= cap), key=lambda a: acc[a])
                 if alts: xedges[i] = alts
     addl = [i for i in additional.get(name, []) if kind == 'Archetype' and i not in ids]
     allids = set(ids) | set(xedges) | {i for i in cls_ids if any(p in xedges or p in cls_ids for p in [i])} if xedges else set(ids)
