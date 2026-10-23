@@ -39,7 +39,7 @@ footer a.gh svg{fill:currentColor}
 <header><h1>PF2e Feat Prerequisite Diagrams</h1>
 <div class="bar"><span id="tabs"></span><select id="grp"></select><input id="q" type="search" placeholder="Find a feat…">
 <button id="zo" title="Zoom out">−</button><button id="zi" title="Zoom in">+</button>
-<span class="legend"><span><i style="background:#fff"></i>common</span><span><i style="background:#ffd9a0"></i>uncommon</span><span><i style="background:#b9dcff"></i>rare</span><span><i style="background:#e6e6e6;border-style:dashed"></i>from another group</span><span><i style="background:#d6f0e0"></i>skill / attribute requirement</span><span><em>italic · legacy</em> = pre-Remaster</span><span>arrow = “requires”; dashed = one of several alternatives</span></span></div></header>
+<span class="legend"><span><i style="background:#fff"></i>common</span><span><i style="background:#ffd9a0"></i>uncommon</span><span><i style="background:#b9dcff"></i>rare</span><span><i style="background:#e6e6e6;border-style:dashed"></i>from another group</span><span><i style="background:#d6f0e0"></i>skill / attribute requirement</span><span><em>italic · legacy</em> = pre-Remaster</span><span>arrow = “leads to”; dashed = one of several alternatives</span></span></div></header>
 <div id="tip"></div><div id="info"></div><div id="wrap"><div id="out"></div><div id="solo"></div></div>
 <footer>Read right to left: each feat points to the feats it requires. Feats with no feat or skill prerequisites are listed below the diagram. <button id="licb">Licenses &amp; attribution</button><a class="gh" href="https://github.com/rjenks/pf2e-feat-tree" target="_blank" rel="noopener" title="View on GitHub"><svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27s1.36.09 2 .27c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>GitHub</a></footer>
 <dialog id="lic"><div class="in"><h2>Licenses &amp; attribution <button id="licx">Close</button></h2>__LICENSES__</div></dialog>
@@ -97,7 +97,7 @@ function wireTips(){let cur=null;const svg=$('out').querySelector('svg');if(!svg
   if(!fid){cur=null;tip.style.display='none';hl(null);return}
   if(cur!==fid||tip.style.display==='none'){cur=fid;showTip(fid,e);hl(m[1])}else moveTip(e)});
  svg.addEventListener('mouseleave',()=>{if(pinned)return;cur=null;tip.style.display='none';hl(null)});
- const edges=[...svg.querySelectorAll('path.flowchart-link')].map(p=>{const k=/(f\d+)[_-](f\d+)/.exec(p.id||'');return k&&{p,from:k[1],to:k[2],mk:p.getAttribute('marker-end')||p.style.markerEnd}}).filter(Boolean);
+ const edges=[...svg.querySelectorAll('path.flowchart-link')].map(p=>{const k=/(f\d+)[_-](f\d+)/.exec(p.id||'');return k&&{p,from:k[2],to:k[1],mk:p.getAttribute('marker-end')||p.style.markerEnd}}).filter(Boolean);
  const mkr=svg.querySelector('marker[id$="pointEnd"]');let hlUrl=null;
  if(mkr){const c=mkr.cloneNode(true);c.id=mkr.id+'-hl';c.querySelectorAll('*').forEach(x=>{x.style.fill='#d00';x.style.stroke='#d00'});mkr.parentNode.append(c);hlUrl='url(#'+c.id+')'}
  function hl(src){const reach=new Set(src?[src]:[]);for(let ch=true;ch;){ch=false;edges.forEach(o=>{if(reach.has(o.from)&&!reach.has(o.to)){reach.add(o.to);ch=true}})}
@@ -120,11 +120,11 @@ async function draw(){const names=opts();writeHash();const out=$('out');
  const ownTops=new Set(G[tab][grp].tops);
  // which nodes belong to this group: reachable set minus nodes reachable only via other groups is unknowable; mark by group membership list
  const mem=G[tab][grp].mem?new Set(G[tab][grp].mem):null;
- const lines=['flowchart RL'];
+ const lines=['flowchart LR'];
  const esc=s=>s.replace(/"/g,'#quot;');
  for(const id of ids){const n=N[id];const ext=mem&&!mem.has(id)&&!n.s,rv=rivals(grp,id);lines.push(`${idx.get(id)}["${esc(n.n)}${n.s?'':'<br/>L'+n.l+(n.lg?' · legacy':'')}${ext?'<br/>'+esc('from '+n.g.slice(0,2).join(' / ')):''}${rv.length?'<br/>'+esc('or '+rv.join(', ')+' Dedication'):''}"]`);}
  let edges=0;
- for(const id of ids){for(const alts of qOf(grp,id)){for(const a of alts){lines.push(`${idx.get(id)} ${alts.length>1?'-.->':'-->'} ${idx.get(a)}`);edges++}}}
+ for(const id of ids){for(const alts of qOf(grp,id)){for(const a of alts){lines.push(`${idx.get(a)} ${alts.length>1?'-.->':'-->'} ${idx.get(id)}`);edges++}}}
  lines.push('classDef unc fill:#ffd9a0,stroke:#b35c00,color:#222','classDef rare fill:#b9dcff,stroke:#0b5ea8,color:#222','classDef ext fill:#e6e6e6,stroke:#888,stroke-dasharray:4 3,color:#222','classDef leg font-style:italic','classDef hit stroke:#d00,stroke-width:4px','classDef sk fill:#d6f0e0,stroke:#2b8a57,color:#222','classDef cls fill:#e8dcf5,stroke:#6b3fa0,stroke-width:2px,color:#222');
  const by=(f)=>ids.filter(f).map(i=>idx.get(i)).join(',');
  const u=by(i=>!N[i].s&&N[i].r=='uncommon'),r=by(i=>N[i].r=='rare'||N[i].r=='unique'),e=by(i=>mem&&!mem.has(i)),h=q?by(i=>N[i].n.toLowerCase().includes(q)):'';
